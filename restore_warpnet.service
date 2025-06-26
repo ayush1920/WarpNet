@@ -1,0 +1,11 @@
+[Unit]
+Description=Restore WARP network namespaces and iptables after boot
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /opt/warp-manager/restore_warpnet.sh
+RemainAfterExit=true
+
+[Install]
+WantedBy=multi-user.target

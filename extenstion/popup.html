@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>WarpNest Proxy Switcher</title>
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --danger: #dc2626;
+      --success: #10b981;
+      --bg-surface: #ffffff;
+      --bg-page: #f3f4f6;
+      --text: #1f2937;
+      --text-secondary: #6b7280;
+      --border: #e5e7eb;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Roboto, Oxygen, Ubuntu, 'Open Sans', sans-serif;
+      min-width: 350px;
+      margin: 0;
+      padding: 0;
+      background: var(--bg-page);
+      color: var(--text);
+      font-size: 14px;
+    }
+    
+    .container {
+      padding: 16px;
+      background: var(--bg-surface);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      border-radius: 8px;
+      margin: 16px;
+      position: relative; /* For positioning the loading overlay */
+    }
+    
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border);
+      position: relative;
+    }
+    
+    .header h1 {
+      font-size: 16px;
+      margin: 0;
+      font-weight: 600;
+    }
+
+    .logo {
+      width: 24px;
+      height: 24px;
+      background-color: var(--primary);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+    }
+    
+    h2 {
+      font-size: 15px;
+      margin: 0 0 16px 0;
+      font-weight: 600;
+      color: var(--text);
+    }
+    
+    .hidden {
+      display: none;
+    }
+    
+    .input-group {
+      margin-bottom: 16px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 0.9em;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+    
+    input[type="text"], input[type="password"] {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      box-sizing: border-box;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+    
+    input[type="text"]:focus, input[type="password"]:focus {
+      border-color: var(--primary);
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+    }
+    
+    .btn {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 6px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s, transform 0.1s;
+      font-size: 14px;
+    }
+    
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: var(--primary-hover);
+    }
+    
+    .btn-primary:active {
+      transform: scale(0.98);
+    }
+    
+    .btn-danger {
+      background: var(--danger);
+      color: white;
+    }
+    
+    .btn-danger:hover {
+      background: #b91c1c;
+    }
+    
+    .btn-row {
+      display: flex;
+      width: 100%;
+      justify-content: space-between;
+    }
+    
+    .proxy-list {
+      margin: 16px 0;
+      max-height: 200px;
+      overflow-y: auto;
+      background: var(--bg-page);
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+    
+    .proxy-item {
+      display: flex;
+      align-items: center;
+      padding: 10px 12px;
+      cursor: pointer;
+      border-bottom: 1px solid var(--border);
+      transition: background-color 0.2s;
+    }
+    
+    .proxy-item:last-child {
+      border-bottom: none;
+    }
+    
+    .proxy-item:hover {
+      background-color: rgba(79, 70, 229, 0.05);
+    }
+    
+    .proxy-item.active {
+      background-color: rgba(79, 70, 229, 0.1);
+    }
+    
+    .proxy-info {
+      margin-left: 8px;
+    }
+    
+    .proxy-name {
+      font-weight: 500;
+    }
+    
+    .proxy-address {
+      font-size: 0.85em;
+      color: var(--text-secondary);
+    }
+    
+    .status {
+      font-size: 0.92em;
+      margin: 12px 0 0 0;
+      padding: 8px 12px;
+      border-radius: 4px;
+      background-color: #fee2e2;
+      color: #b91c1c;
+      display: block;
+      visibility: hidden;
+    }
+    
+    .status.success {
+      background-color: #d1fae5;
+      color: #065f46;
+    }
+    
+    .status.visible {
+      visibility: visible;
+    }
+    
+    /* Custom radio button styling */
+    .custom-radio {
+      display: flex;
+      align-items: center;
+      position: relative;
+    }
+    
+    .custom-radio input {
+      position: absolute;
+      opacity: 0;
+      cursor: pointer;
+    }
+    
+    .checkmark {
+      position: relative;
+      height: 18px;
+      width: 18px;
+      background-color: #fff;
+      border: 2px solid var(--border);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .custom-radio:hover input ~ .checkmark {
+      border-color: var(--primary);
+    }
+    
+    .custom-radio input:checked ~ .checkmark {
+      border-color: var(--primary);
+    }
+    
+    .checkmark:after {
+      content: "";
+      position: absolute;
+      display: none;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--primary);
+    }
+    
+    .custom-radio input:checked ~ .checkmark:after {
+      display: block;
+    }
+    
+    .action-row {
+      margin-top: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      justify-content: space-evenly;
+    }
+    
+    #open-webapp {
+      background: transparent;
+      color: var(--primary);
+      border: 1px solid var(--primary);
+    }
+    
+    #open-webapp:hover {
+      background: rgba(79, 70, 229, 0.05);
+    }
+    
+    /* Loading spinner */
+    .loading-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(255, 255, 255, 0.8);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+      border-radius: 8px;
+    }
+
+    .loading-overlay.hidden {
+      display: none;
+    }
+    
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(79, 70, 229, 0.1);
+      border-radius: 50%;
+      border-top-color: var(--primary);
+      animation: spin 1s ease-in-out infinite;
+    }
+    
+    .loading-text {
+      margin-top: 16px;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 500;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">W</div>
+    <h1>WarpNest Proxy Manager</h1>
+  </div>
+
+  <div id="step-server" class="container">
+    <h2>Connect to Server</h2>
+    <div class="input-group">
+      <label for="server">Server Address</label>
+      <input type="text" id="server" placeholder="http://your-server:5010" autocomplete="off">
+    </div>
+    <button id="save-server" class="btn btn-primary">Connect</button>
+    <div id="server-loading" class="loading-overlay hidden">
+      <div class="spinner"></div>
+      <div class="loading-text">Connecting...</div>
+    </div>
+  </div>
+
+  <div id="step-login" class="hidden container">
+    <h2>Authentication</h2>
+    <div class="input-group">
+      <label for="password">Password</label>
+      <input type="password" id="password" placeholder="Enter password">
+    </div>
+    <button id="login-btn" class="btn btn-primary">Login</button>
+    <div class="status" id="login-status"></div>
+    <div id="login-loading" class="loading-overlay">
+      <div class="spinner"></div>
+      <div class="loading-text">Authenticating...</div>
+    </div>
+  </div>
+
+  <div id="step-proxy" class="hidden container">
+    <h2>Select Proxy</h2>
+    <div class="proxy-list" id="proxy-list">
+      <!-- Proxy items will be inserted here by JavaScript -->
+    </div>
+    <div class="action-row">
+      <div class="btn-row">
+        <button id="open-webapp" class="btn" style="padding: 10px 12px;">Web</button>
+        <button id="clear-proxy" class="btn btn-danger">Disconnect</button>
+        <button id="signout-btn" class="btn" style="background: transparent; color: var(--text-secondary); border: 1px solid var(--border);">Sign Out</button>
+      </div>
+    </div>
+    <div class="status" id="proxy-status"></div>
+    <div id="proxy-loading" class="loading-overlay">
+      <div class="spinner"></div>
+      <div class="loading-text">Loading proxies...</div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
