@@ -1,5 +1,18 @@
 # WarpNest: Multi-WARP VPN Manager 🚀🛡️
 
+## 🌟 Real-World Power: Bypass IP Bans & Download Limits
+
+Have you ever hit a download limit or IP ban on sites like Nitroflare, Rapidgator, or other file hosts? WarpNest gives you a practical, ethical way to work around these restrictions:
+
+- **Bypass per-IP download limits:** Launch multiple browser sessions, each with a unique WARP IP, so you can download more files in parallel or avoid waiting between downloads.
+- **Avoid IP bans:** If a service blocks or throttles your IP, just switch to another WARP profile and keep going.
+- **Multi-accounting & automation:** Run several social, ad, or research accounts at once—each in its own Chrome window, each with a different IP and proxy.
+- **Testing geo-restricted or rate-limited content:** Instantly switch your browser or automation to a new IP for testing, scraping, or QA.
+
+**How?** Use the Chrome Manager page to generate a ZIP file with ready-to-run batch scripts and Chrome profiles. Each script launches a Chrome window sandboxed with a different WARP proxy—no manual config, no hassle.
+
+---
+
 WarpNest is your all-in-one toolkit for privacy, automation, and power-user networking. Effortlessly create and manage dozens of independent Cloudflare WARP VPN profiles—each in its own isolated Linux namespace—then control them all from a beautiful web dashboard or your browser.
 
 ---
@@ -93,6 +106,7 @@ WarpNest is your all-in-one toolkit for privacy, automation, and power-user netw
 - **Web UI:** Manage everything from a modern dashboard—no CLI required.
 - **Browser Extensions:** Switch proxies in Chrome with a click, or overlay controls on any page.
 - **Chrome Manager:** Run multiple Chrome sessions, each with a different IP, for multi-accounting, testing, or automation.
+- **Bypass IP bans and download limits:** For example, services like Nitroflare and other file hosts often restrict downloads by IP address. With WarpNest, you can launch multiple browser sessions, each with a unique WARP IP, to bypass per-IP download limits or bans—making it possible to download more files in parallel or avoid waiting between downloads.
 - **Automated Setup:** One-command install, full reset, and easy updates.
 - **Customizable:** Choose your install location, number of profiles, and more.
 - **Full Reset Option:** Wipe and rebuild everything with `reset_warpnest.sh`.
