@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+
+<head>
+    <title>WarpNest Chrome Manager</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    <style>
+        :root {
+            --primary: #2463EB;
+            --primary-dark: #1D4ED8;
+            --success: #10B981;
+            --danger: #EF4444;
+            --warning: #F59E0B;
+            --text-primary: #111827;
+            --text-secondary: #4B5563;
+            --bg-main: #F3F4F6;
+            --card-bg: #FFFFFF;
+            --border-color: #E5E7EB;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --transition: all 0.2s ease;
+            --overlay-bg: rgba(255, 255, 255, 0.8);
+        }
+
+        .dark {
+            --primary: #3B82F6;
+            --primary-dark: #2563EB;
+            --success: #10B981;
+            --danger: #EF4444;
+            --warning: #F59E0B;
+            --text-primary: #F9FAFB;
+            --text-secondary: #D1D5DB;
+            --bg-main: #111827;
+            --card-bg: #1F2937;
+            --border-color: #374151;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.25);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.16);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.15);
+            --overlay-bg: rgba(17, 24, 39, 0.8);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-main);
+            color: var(--text-primary);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            transition: background-color 0.3s ease;
+            user-select: none;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .header-title {
+            font-family: 'Manrope', sans-serif;
+            font-weight: 700;
+            font-size: 1.75rem;
+            color: var(--text-primary);
+            letter-spacing: -0.025em;
+        }
+
+        .header-title span {
+            color: var(--primary);
+            position: relative;
+        }
+
+        .header-title span::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: -4px;
+            height: 2px;
+            width: 100%;
+            background-color: var(--primary);
+            border-radius: 4px;
+        }
+
+        /* Navigation styles */
+        .nav {
+            background: var(--card-bg);
+            border-radius: 0.75rem;
+            padding: 0.75rem;
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 2rem;
+            border: 1px solid var(--border-color);
+            display: flex;
+            overflow-x: auto;
+            gap: 0.5rem;
+        }
+
+        .nav-link {
+            color: var(--text-secondary);
+            padding: 0.625rem 1.25rem;
+            text-decoration: none;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            font-size: 0.875rem;
+            transition: var(--transition);
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-link:hover {
+            background-color: rgba(107, 114, 128, 0.1);
+            color: var(--text-primary);
+        }
+
+        .nav-link.active {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .theme-toggle {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.25rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            transition: var(--transition);
+        }
+
+        .theme-toggle:hover {
+            color: var(--text-primary);
+            background-color: rgba(107, 114, 128, 0.1);
+        }
+
+        .control-panel {
+            background: var(--card-bg);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-md);
+            margin-bottom: 2rem;
+            border: 1px solid var(--border-color);
+            transition: var(--transition);
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+        }
+
+        .panel-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.625rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.375rem;
+            background-color: var(--card-bg);
+            color: var(--text-primary);
+            font-family: inherit;
+            transition: var(--transition);
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+        }
+
+        textarea.form-control {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.625rem 1.25rem;
+            font-weight: 500;
+            border-radius: 0.5rem;
+            transition: var(--transition);
+            cursor: pointer;
+            font-size: 0.875rem;
+            border: none;
+            gap: 0.5rem;
+        }
+
+        .btn:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-success:hover:not(:disabled) {
+            background: #059669;
+            transform: translateY(-1px);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: #DC2626;
+            transform: translateY(-1px);
+        }
+
+        .btn:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-color);
+            background: var(--card-bg);
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--overlay-bg);
+            backdrop-filter: blur(5px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+
+        .loading-content {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 30px;
+            width: 320px;
+            max-width: 90%;
+            box-shadow: var(--shadow-lg);
+            text-align: center;
+            border: 1px solid var(--border-color);
+            animation: pulse 1.5s infinite ease-in-out;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+            100% { transform: scale(1); }
+        }
+
+        .loading-overlay span {
+            color: var(--text-primary);
+            display: block;
+            margin: 15px 0;
+            font-weight: 500;
+        }
+        
+        .progress-container {
+            height: 4px;
+            width: 100%;
+            background: var(--border-color);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 20px;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            width: 0;
+            background: var(--primary);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .loading-active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .loader {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(107, 114, 128, 0.3);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 0.5rem;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .profile-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+            background: var(--card-bg);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .profile-url {
+            flex: 1;
+            margin-right: 1rem;
+        }
+
+        .proxy-select {
+            min-width: 150px;
+        }
+
+        #profiles-container {
+            margin-top: 1.5rem;
+        }
+
+        .helper-text {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        .download-btn {
+            margin-top: 1.5rem;
+        }
+
+        .info-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-weight: 500;
+            font-size: 0.75rem;
+            margin-left: 0.5rem;
+            background-color: rgba(59, 130, 246, 0.1);
+            color: var(--primary);
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+            
+            .panel-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+            
+            .profile-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .profile-url {
+                width: 100%;
+                margin-right: 0;
+                margin-bottom: 0.75rem;
+            }
+            
+            .proxy-select {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="loader"></div>
+            <span>Processing request...</span>
+            <div class="progress-container">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <header class="header">
+            <h1 class="header-title">WarpNest <span>Chrome Manager</span></h1>
+            <div style="display: flex; gap: 0.75rem; align-items: center;">
+                <button id="themeToggle" class="theme-toggle" aria-label="Toggle dark mode">
+                    <i class="fas fa-moon"></i>
+                </button>
+                <a href="/logout" class="btn btn-primary" style="font-size: 0.875rem; padding: 0.5rem 0.75rem;">
+                    <i class="fas fa-sign-out-alt"></i> Sign Out
+                </a>
+            </div>
+        </header>
+
+        <nav class="nav">
+            <a href="/" class="nav-link">
+                <i class="fas fa-network-wired"></i> Proxy Manager
+            </a>
+            <a href="/chrome_manager" class="nav-link active">
+                <i class="fab fa-chrome"></i> Chrome Manager
+            </a>
+        </nav>
+
+        <div class="control-panel">
+            <div class="panel-header">
+                <h2 class="panel-title">Chrome Profiles Generator</h2>
+            </div>
+
+            <div class="form-group">
+                <label for="urlsInput" class="form-label">URLs List</label>
+                <textarea id="urlsInput" class="form-control" placeholder="https://example.com&#10;https://another-site.com&#10;https://third-site.com"></textarea>
+                <p class="helper-text">Enter one URL per line</p>
+            </div>
+
+            <div id="profiles-container">
+                <!-- Profile items will be added here dynamically -->
+            </div>
+
+            <button id="generateBtn" class="btn btn-primary">
+                <i class="fas fa-wand-magic-sparkles"></i> Generate Configuration
+            </button>
+
+            <div id="downloadSection" style="display: none; margin-top: 1.5rem;">
+                <button id="downloadBtn" class="btn btn-success download-btn">
+                    <i class="fas fa-download"></i> Download Batch File
+                </button>
+                <p class="helper-text" style="margin-top: 0.75rem;">
+                    <i class="fas fa-info-circle"></i> 
+                    The batch file will create Chrome profiles with the selected proxies and load a custom extension 
+                    that shows the active proxy in the bottom-right corner of each window.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Theme toggle functionality
+        const themeToggle = document.getElementById('themeToggle');
+        const htmlElement = document.documentElement;
+
+        function setDarkMode(isDark) {
+            if (isDark) {
+                htmlElement.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+                themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+            } else {
+                htmlElement.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+                themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
+            }
+        }
+
+        // Check for saved theme preference or prefer-color-scheme
+        const savedTheme = localStorage.getItem('theme');
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+        if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+            setDarkMode(true);
+        }
+
+        themeToggle.addEventListener('click', () => {
+            const isDark = htmlElement.classList.contains('dark');
+            setDarkMode(!isDark);
+        });
+
+        function showLoading() {
+            const overlay = document.getElementById('loadingOverlay');
+            overlay.classList.add('loading-active');
+        }
+
+        function hideLoading() {
+            const overlay = document.getElementById('loadingOverlay');
+            overlay.classList.remove('loading-active');
+        }
+
+        let loadingTimer;
+        function startLoadingTimer() {
+            showLoading();
+            clearTimeout(loadingTimer);
+            loadingTimer = setTimeout(() => {
+                hideLoading();
+            }, 500);
+        }
+
+        // Get active proxies from server
+        let activeProxies = [];
+
+        function fetchActiveProxies() {
+            startLoadingTimer();
+            return fetch('/extenstion/active_proxies')
+                .then(response => response.json())
+                .then(data => {
+                    activeProxies = data.active_proxies || [];
+                    hideLoading();
+                    return activeProxies;
+                })
+                .catch(error => {
+                    console.error('Error fetching active proxies:', error);
+                    hideLoading();
+                    return [];
+                });
+        }
+
+        // Generate profile items based on the URLs input
+        function generateProfiles() {
+            const urlsInput = document.getElementById('urlsInput').value;
+            const urls = urlsInput.split('\n').filter(url => url.trim() !== '');
+            
+            if (urls.length === 0) {
+                alert('Please enter at least one URL');
+                return;
+            }
+
+            if (activeProxies.length === 0) {
+                alert('No active proxies available. Please start at least one proxy first.');
+                return;
+            }
+
+            const profilesContainer = document.getElementById('profiles-container');
+            profilesContainer.innerHTML = '';
+
+            urls.forEach((url, index) => {
+                if (!url.trim()) return;
+                
+                // Create profile item element
+                const profileItem = document.createElement('div');
+                profileItem.className = 'profile-item';
+                
+                // URL display
+                const urlDiv = document.createElement('div');
+                urlDiv.className = 'profile-url';
+                urlDiv.textContent = url.trim();
+                
+                // Proxy selection dropdown
+                const selectDiv = document.createElement('div');
+                selectDiv.className = 'proxy-select';
+                
+                const select = document.createElement('select');
+                select.className = 'form-control';
+                select.dataset.url = url.trim();
+                
+                // Add options for each active proxy
+                activeProxies.forEach((proxy, pIndex) => {
+                    const option = document.createElement('option');
+                    option.value = proxy.port;
+                    option.textContent = `${proxy.name} (Port: ${proxy.port})`;
+                    // Distribute proxies evenly among URLs if possible
+                    if (pIndex % activeProxies.length === index % activeProxies.length) {
+                        option.selected = true;
+                    }
+                    select.appendChild(option);
+                });
+                
+                selectDiv.appendChild(select);
+                
+                // Add elements to profile item
+                profileItem.appendChild(urlDiv);
+                profileItem.appendChild(selectDiv);
+                
+                // Add profile item to container
+                profilesContainer.appendChild(profileItem);
+            });
+
+            // Show download section
+            document.getElementById('downloadSection').style.display = 'block';
+        }
+
+        // Generate batch file for download
+        function generateBatchFile() {
+
+            const profileItems = document.querySelectorAll('.profile-item');
+            if (profileItems.length === 0) {
+                alert('No profiles to generate');
+                return;
+            }
+
+            const urls = [];
+            const proxySettings = [];
+
+            profileItems.forEach((item) => {
+                urls.push(item.querySelector('.profile-url').textContent);
+                proxySettings.push(item.querySelector('select').value);
+            });
+
+            // Show loading indicator
+            showLoading();
+            document.querySelector('#loadingOverlay span').textContent = "Generating batch file...";
+            
+            // Send data to server to generate batch file
+            fetch('/generate_batch', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    urls,
+                    proxySettings
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Server responded with ${response.status}: ${response.statusText}`);
+                }
+                const disposition = response.headers.get('Content-Disposition');
+                let filename = 'bundle.zip';
+                if (disposition && disposition.includes('filename=')) {
+                    const match = disposition.match(/filename="?([^"]+)"?/);
+                    if (match) filename = match[1];
+                }
+                return response.blob().then(blob => {
+                    return { blob, filename };
+                });
+            })
+            .then(({ blob, filename }) => {
+                // Create a new blob with the correct MIME type to ensure browser handles it correctly
+                const newBlob = new Blob([blob], { type: 'application/zip' });
+                const url = URL.createObjectURL(newBlob);
+                
+                // Create download link
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                
+                // Trigger download
+                document.body.appendChild(a);
+                a.click();
+                
+                // Clean up
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 100);
+                
+                hideLoading();
+            })
+            .catch(error => {
+                console.error('Error generating batch file:', error);
+                alert(`Error generating batch file: ${error.message}`);
+                hideLoading();
+            });
+        }
+
+        // Event listeners
+        document.getElementById('generateBtn').addEventListener('click', () => {
+            fetchActiveProxies().then(() => {
+                generateProfiles();
+            });
+        });
+
+        document.getElementById('downloadBtn').addEventListener('click', generateBatchFile);
+
+        // Initialize - fetch active proxies when the page loads
+        window.onload = function() {
+            fetchActiveProxies();
+        };
+    </script>
+</body>
+
+</html>

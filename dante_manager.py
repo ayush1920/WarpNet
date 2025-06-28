@@ -1,8 +1,15 @@
-from flask import Flask,  request, render_template, redirect, url_for, session, make_response
-from werkzeug.security import generate_password_hash, check_password_hash
-import subprocess
 import os
+import io
+import json
+import shutil
+import zipfile
+import requests
+import tempfile
+import subprocess
+
 from datetime import timedelta
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask import Flask,  request, render_template, redirect, url_for, session, make_response, send_file, jsonify
 
 app = Flask(__name__)
 
@@ -10,6 +17,7 @@ CONFIG_DIR = "/etc/danted-warp"
 PROXY_COUNT = len(list(filter(lambda x: x.startswith("warpns"), os.listdir(CONFIG_DIR))))
 CONFIG_FILE = os.path.join(os.path.dirname(__file__), 'warp_manager.conf')
 SECRET_KEY_FILE = os.path.join(os.path.dirname(__file__), 'flask_secret_key.txt')
+PUBLIC_IP = requests.get('https://api.ipify.org').text
 
 # Load Flask secret key from file if available
 if os.path.exists(SECRET_KEY_FILE):
@@ -211,6 +219,116 @@ def logout():
     session.clear()  # Clear all session data
     return redirect(url_for('login'))
 
+@app.route('/generate_batch', methods=['POST'])
+def generate_batch():
+    """Generate a batch file for launching Chrome with multiple profiles and proxies"""
+
+    data = request.json
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+    
+
+    urls = data.get('urls', [])
+    proxy_settings = data.get('proxySettings', [])
+    
+    if not urls or len(urls) != len(proxy_settings):
+        return jsonify({"error": "Invalid data format"}), 400
+    
+    # Create temp directory for extensions
+    temp_dir = tempfile.mkdtemp(prefix="chrome_extensions_")
+    extensions_dir = os.path.join(temp_dir, "extensions")
+    
+    # delete any existing extensions in the directory
+    if os.path.exists(extensions_dir):
+        shutil.rmtree(extensions_dir)
+
+    os.makedirs(extensions_dir, exist_ok=True)
+
+    # Template directory path
+    template_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'proxy_overlay_extension')
+    
+    # Create an extension for each proxy
+    extension_paths = []
+    for i, proxy_port in enumerate(proxy_settings):
+        # Create extension directory
+        ext_dir = os.path.join(extensions_dir, f"proxy-extension-{i+1}")
+        
+        # Copy template directory content
+        shutil.copytree(template_dir, ext_dir)
+        
+        # Create config.json with proxy settings
+        with open(os.path.join(ext_dir, "config.json"), "w") as f:
+            json.dump({
+                "ip": PUBLIC_IP, 
+                "port": proxy_port
+            }, f)
+        
+        extension_paths.append(ext_dir)
+    
+    
+    # Create batch content
+    batch_content = '@echo off\r\n'
+    batch_content += 'set "SCRIPT_DIR=%~dp0"\r\n'
+    batch_content += 'echo Starting Chrome profiles...\r\n'
+    batch_content += f'mkdir ".\\extensions" 2>nul\r\n\r\n'
+    
+    # Copy extensions to a location that will be accessible from the batch file
+    batch_content += 'echo Setting up extensions...\r\n'
+    
+
+        
+    for i, (url, proxy_port) in enumerate(zip(urls, proxy_settings)):
+        profile_name = f"profile{i + 1}"
+        ext_path = f"extensions\\proxy-extension-{i+1}"
+        
+        batch_content += f'echo Starting Chrome for {url}...\r\n'
+        batch_content += f'mkdir "{profile_name}" 2>nul\r\n'
+        batch_content += f'start chrome --user-data-dir="%SCRIPT_DIR%{profile_name}" --proxy-server="socks5://{PUBLIC_IP}:{proxy_port}" --disable-features=DisableLoadExtensionCommandLineSwitch --load-extension="%SCRIPT_DIR%{ext_path}" --new-window "{url}"\r\n\r\n'
+
+    batch_content += 'echo All Chrome profiles have been launched\r\n'
+    batch_content += 'pause\r\n'
+    
+
+    zip_buffer = io.BytesIO()
+
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
+    # Add folder contents
+        for root, dirs, files in os.walk(extensions_dir):
+            for file in files:
+                full_path = os.path.join(root, file)
+                arcname =  os.path.join('extensions', os.path.relpath(full_path, start=extensions_dir))
+                zipf.write(full_path, arcname)
+
+        # Add in-memory file
+        mem_file = io.BytesIO(bytes(batch_content, 'utf-8'))
+        zipf.writestr('start_chrome.bat', mem_file.getvalue())
+
+
+    # Save the zip file to a temporary location
+    zip_buffer.seek(0)
+
+    # Write to temp file
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix='.zip')
+    tmp.write(zip_buffer.read())
+    tmp.close()
+
+    response = send_file(
+        tmp.name, 
+        as_attachment=True,
+        download_name='bundle.zip',
+        mimetype='application/zip'
+    )
+    
+    # Ensure proper Content-Disposition header
+    response.headers['Content-Disposition'] = 'attachment; filename=bundle.zip'
+    
+    return response
+
+
+@app.route('/chrome_manager')
+def chrome_manager():
+    return render_template("chrome_manager.html")
+
 # Utility to get base port from cnfig file
 def get_base_port():
     if os.path.exists(CONFIG_FILE):
@@ -218,6 +336,17 @@ def get_base_port():
             for line in f:
                 if line.startswith('BASE_PORT='):
                     return int(line.strip().split('=')[1])
+
+
+@app.after_request
+def cleanup_temp_file(response):
+    # Cleanup zip file if exists
+    if response.direct_passthrough and response.status_code == 200:
+        try:
+            os.remove(response.direct_passthrough.name)
+        except Exception:
+            pass
+    return response
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5010)

@@ -7,7 +7,7 @@ set -e
 trap 'echo "[ERROR] Script failed at line $LINENO. Exiting." >&2' ERR
 
 # Install required packages
-apt install -y wireguard-tools iproute2 curl dante-server socat lsof
+apt install -y wireguard-tools iproute2 curl dante-server socat lsof iptables
 
 # Download and install wgcf if not already present
 echo "Checking for wgcf..."

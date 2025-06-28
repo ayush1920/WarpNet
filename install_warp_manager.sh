@@ -45,7 +45,7 @@ cd "$INSTALL_DIR"
 python3 -m venv venv
 source venv/bin/activate
 pip install --upgrade pip
-pip install flask psutil werkzeug
+pip install flask psutil werkzeug requests
 
 # Ensure templates directory exists and is correct
 if [ ! -d "$INSTALL_DIR/templates" ]; then

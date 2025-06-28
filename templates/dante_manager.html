@@ -118,6 +118,43 @@
             background-color: rgba(107, 114, 128, 0.1);
         }
 
+        /* Navigation styles */
+        .nav {
+            background: var(--card-bg);
+            border-radius: 0.75rem;
+            padding: 0.75rem;
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 2rem;
+            border: 1px solid var(--border-color);
+            display: flex;
+            overflow-x: auto;
+            gap: 0.5rem;
+        }
+
+        .nav-link {
+            color: var(--text-secondary);
+            padding: 0.625rem 1.25rem;
+            text-decoration: none;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            font-size: 0.875rem;
+            transition: var(--transition);
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-link:hover {
+            background-color: rgba(107, 114, 128, 0.1);
+            color: var(--text-primary);
+        }
+
+        .nav-link.active {
+            background-color: var(--primary);
+            color: white;
+        }
+
         .stats-container {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -593,6 +630,7 @@
                 display: none;
             }
         }
+
     </style>
 </head>
 
@@ -619,6 +657,15 @@
                 </a>
             </div>
         </header>
+
+        <nav class="nav">
+            <a href="/" class="nav-link active">
+                <i class="fas fa-network-wired"></i> Proxy Manager
+            </a>
+            <a href="/chrome_manager" class="nav-link">
+                <i class="fab fa-chrome"></i> Chrome Manager
+            </a>
+        </nav>
 
         <div class="stats-container">
             <div class="stat-card">
