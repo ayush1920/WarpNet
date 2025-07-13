@@ -97,10 +97,6 @@ def start_proxy(i):
     output = supervisorctl("start", f"{ns}-danted")
     if "ERROR" in output:
         return {"status": "error", "namespace": ns, "result": output}, 500
-
-    output = supervisorctl("start", f"{ns}-socat")
-    if "ERROR" in output:
-        return {"status": "error", "namespace": ns, "result": output}, 500       
               
     return {"status": "started", "namespace": ns, "result": output}, 200
 
@@ -110,10 +106,6 @@ def stop_proxy(i):
     output = supervisorctl("stop", f"{ns}-danted")
     if "ERROR" in output:
         return {"status": "error", "namespace": ns, "result": output}, 500
-
-    output = supervisorctl("stop", f"{ns}-socat")
-    if "ERROR" in output:
-        return {"status": "error", "namespace": ns, "result": output}, 500       
               
     return {"status": "stopped", "namespace": ns, "result": output}, 200
 
@@ -121,10 +113,6 @@ def stop_proxy(i):
 def restart_proxy(i):
     ns = get_ns(i)
     output = supervisorctl("restart", f"{ns}-danted")
-    if "ERROR" in output:
-        return {"status": "error", "namespace": ns, "result": output}, 500
-
-    output = supervisorctl("restart", f"{ns}-socat")
     if "ERROR" in output:
         return {"status": "error", "namespace": ns, "result": output}, 500
 

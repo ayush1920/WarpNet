@@ -2,7 +2,7 @@
 # install.sh - Installer for Warp Manager
 
 set -e
-# apt update
+apt update
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Copy the main script to /usr/local/bin (requires sudo)
