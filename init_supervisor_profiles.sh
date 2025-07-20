@@ -3,9 +3,13 @@
 
 set -e
 
+# Source common utilities
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/common_utils.sh"
+
 # Install supervisor if not present
 if ! command -v supervisorctl >/dev/null 2>&1; then
-  echo -e "\033[1;33mInstalling supervisor...\033[0m"
+  print_status "info" "Installing supervisor..."
   apt install -y supervisor
 fi
 
@@ -13,53 +17,20 @@ fi
 systemctl enable supervisor
 systemctl start supervisor
 
-# Set WARP_DIR to match the install location (where config_vnc.sh creates profiles)
-if [ -z "$INSTALL_DIR" ]; then
-  if [ -f "$CONFIG_FILE" ]; then
-    INSTALL_DIR=$(dirname "$CONFIG_FILE")
-  elif [ -d "/opt/warp-manager/warp-profiles" ]; then
-    INSTALL_DIR="/opt/warp-manager"
-  elif [ -d "$HOME/warp-manager/warp-profiles" ]; then
-    INSTALL_DIR="$HOME/warp-manager"
-  fi
-fi
-WARP_DIR="$INSTALL_DIR/warp-profiles"
-SUPERVISOR_DIR="/etc/supervisor/conf.d"
-DANTED_CONFIG_DIR="/etc/danted-warp"
-
-# Find config file relative to this script's location, or in install dir
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONFIG_FILE="$SCRIPT_DIR/../warp_manager.conf"
-if [ ! -f "$CONFIG_FILE" ]; then
-  # Try install dir
-  if [ -n "$INSTALL_DIR" ] && [ -f "$INSTALL_DIR/warp_manager.conf" ]; then
-    CONFIG_FILE="$INSTALL_DIR/warp_manager.conf"
-  elif [ -f "/opt/warp-manager/warp_manager.conf" ]; then
-    CONFIG_FILE="/opt/warp-manager/warp_manager.conf"
-  elif [ -f "$HOME/warp-manager/warp_manager.conf" ]; then
-    CONFIG_FILE="$HOME/warp-manager/warp_manager.conf"
-  fi
-fi
-if [ -f "$CONFIG_FILE" ]; then
-  source "$CONFIG_FILE"
-fi
-
-# Use BASE_PORT from config if set, otherwise prompt
-if [ -z "$BASE_PORT" ]; then
-  read -p "Enter starting port for SOCKS proxies [default: 1080]: " BASE_PORT
-  BASE_PORT=${BASE_PORT:-1080}
-fi
+# Initialize common variables and load configuration
+init_common_vars
+load_config_with_base_port 1080
 
 if [ ! -d "$WARP_DIR" ]; then
-  echo -e "\033[1;31mwarp-profiles directory not found: $WARP_DIR\033[0m"
+  print_status "error" "warp-profiles directory not found: $WARP_DIR"
   exit 1
 fi
 
-COUNT=$(find "$WARP_DIR" -mindepth 1 -maxdepth 1 -type d -name 'warp*' | wc -l)
+COUNT=$(count_warp_profiles)
 
 for i in $(seq 1 $COUNT); do
-  NS="warpns$i"
-  PORT=$((BASE_PORT + i - 1))
+  NS=$(get_namespace_name $i)
+  PORT=$(get_proxy_port $i)
   DANTED_CONF="$DANTED_CONFIG_DIR/$NS.conf"
   SUP_CONF="$SUPERVISOR_DIR/$NS.conf"
 
@@ -93,15 +64,20 @@ EOF
 
 done
 
-echo -e "\033[1;33mSupervisor profiles created for $COUNT proxies in $SUPERVISOR_DIR.\033[0m"
+print_status "success" "Supervisor profiles created for $COUNT proxies in $SUPERVISOR_DIR."
 
 # Generate rinetd configuration for port forwarding
-echo -e "\033[1;33mGenerating rinetd configuration...\033[0m"
+print_status "info" "Generating rinetd configuration..."
 
-# Install required packages for port management
+# Install required packages for port management and log rotation
 if ! command -v lsof &> /dev/null; then
     echo -e "\033[1;33mInstalling lsof for port management...\033[0m"
     apt-get update -qq && apt-get install -y lsof
+fi
+
+if ! command -v logrotate &> /dev/null; then
+    echo -e "\033[1;33mInstalling logrotate for log management...\033[0m"
+    apt-get update -qq && apt-get install -y logrotate
 fi
 
 RINETD_CONF="/etc/rinetd.conf"
@@ -118,8 +94,8 @@ EOF
 
 # Add forwarding rules for each proxy
 for i in $(seq 1 $COUNT); do
-    PORT=$((BASE_PORT + i - 1))
-    TARGET_IP="10.10.$i.2"
+    PORT=$(get_proxy_port $i)
+    TARGET_IP=$(get_namespace_ip $i)
     
     # Add forwarding rule to rinetd.conf
     echo "0.0.0.0 $PORT $TARGET_IP $PORT" | tee -a "$RINETD_CONF" > /dev/null
@@ -130,15 +106,76 @@ for i in $(seq 1 $COUNT); do
 
 done
 
-echo -e "\033[1;33mrinetd configuration created. Starting rinetd service...\033[0m"
+echo -e "\033[1;33mrinetd configuration created. Configuring rinetd service with restart policy...\033[0m"
 
+# Stop and disable any existing rinetd service
+if systemctl is-active --quiet rinetd; then
+    echo -e "\033[1;33mStopping existing rinetd service...\033[0m"
+    systemctl stop rinetd
+fi
 
+if systemctl is-enabled --quiet rinetd 2>/dev/null; then
+    echo -e "\033[1;33mDisabling existing rinetd service...\033[0m"
+    systemctl disable rinetd
+fi
+
+# Kill any existing rinetd processes
+echo -e "\033[1;33mKilling any existing rinetd processes...\033[0m"
+pkill -f rinetd 2>/dev/null || true
+
+# Create systemd override directory for rinetd
+mkdir -p /etc/systemd/system/rinetd.service.d
+
+# Create systemd override configuration for rinetd with restart policy and file logging
+tee /etc/systemd/system/rinetd.service.d/override.conf > /dev/null <<EOF
+[Unit]
+Description=Rinetd Port Forwarder
+After=network.target
+
+[Service]
+Type=simple
+Restart=on-failure
+RestartSec=5
+StartLimitInterval=300
+StartLimitBurst=10
+
+# File-based logging with 5MB limit (rinetd only)
+StandardOutput=file:/var/log/rinetd.log
+StandardError=file:/var/log/rinetd.log
+
+# Override the default ExecStart to run in foreground
+ExecStart=
+ExecStart=/usr/sbin/rinetd -f -c /etc/rinetd.conf
+
+# Process management
+PIDFile=/run/rinetd.pid
+KillMode=process
+TimeoutStartSec=30
+TimeoutStopSec=30
+
+EOF
+
+# Create logrotate configuration for rinetd logs (5MB limit, override behavior)
+tee /etc/logrotate.d/rinetd > /dev/null <<EOF
+/var/log/rinetd.log {
+    size 5M
+    rotate 0
+    copytruncate
+    missingok
+    notifempty
+    create 0644 root root
+}
+
+EOF
+
+# Reload systemd daemon to apply the override
+reload_systemd_safe
 
 # Enable and start rinetd service
 systemctl enable rinetd
 systemctl restart rinetd
 
-echo -e "\033[1;33mReloading supervisor configs...\033[0m"
+print_status "info" "Reloading supervisor configs..."
 supervisorctl reread
 supervisorctl update
 supervisorctl restart all    

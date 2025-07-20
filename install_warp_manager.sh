@@ -4,7 +4,7 @@
 set -e
 
 echo "Updating system and installing dependencies..."
-apt install -y python3 python3-pip python3-venv supervisor wireguard-tools iproute2 curl nftables
+apt install -y python3 python3-pip python3-venv supervisor wireguard-tools iproute2 curl nftables logrotate
 
 echo "Installing wgcf..."
 if ! command -v wgcf >/dev/null 2>&1; then
